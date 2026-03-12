@@ -50,14 +50,14 @@ export CONTAINER_RUNTIME="docker"
 # Usage
 # =============================================================================
 usage() {
-	# Check if language is set to Chinese
-	local is_zh=false
-	if [[ ${LANGUAGE:-} == "zh" ]] || [[ ${1:-} == "zh" ]]; then
-		is_zh=true
-	fi
+  # Check if language is set to Chinese
+  local is_zh=false
+  if [[ ${LANGUAGE:-} == "zh" ]] || [[ ${1:-} == "zh" ]]; then
+    is_zh=true
+  fi
 
-	if [[ $is_zh == "true" ]]; then
-		cat <<'EOF'
+  if [[ $is_zh == "true" ]]; then
+    cat <<'EOF'
 dev-setup - 开发环境一键配置脚本
 
 在 macOS/Linux 上快速搭建开发环境
@@ -105,8 +105,8 @@ dev-setup - 开发环境一键配置脚本
 更多信息:
     https://github.com/SKIPPINGpetticoatconvent/dev-setup
 EOF
-	else
-		cat <<'EOF'
+  else
+    cat <<'EOF'
 dev-setup - Development Environment Setup
 
 A one-click script to set up your development environment on macOS/Linux
@@ -154,254 +154,254 @@ Examples:
 For more information, visit:
     https://github.com/SKIPPINGpetticoatconvent/dev-setup
 EOF
-	fi
-	exit 0
+  fi
+  exit 0
 }
 
 # =============================================================================
 # Parse arguments
 # =============================================================================
 parse_args() {
-	while [[ $# -gt 0 ]]; do
-		case "$1" in
-		--shell)
-			TARGET_SHELL="$2"
-			shift 2
-			;;
-		--lang)
-			LANGUAGE="$2"
-			init_messages
-			shift 2
-			;;
-		--container)
-			case "$2" in
-			docker)
-				INSTALL_DOCKER=true
-				INSTALL_PODMAN=false
-				;;
-			podman)
-				INSTALL_DOCKER=false
-				INSTALL_PODMAN=true
-				;;
-			both)
-				INSTALL_DOCKER=true
-				INSTALL_PODMAN=true
-				;;
-			*)
-				log_error "Invalid container option: $2"
-				echo "Use docker, podman, or both"
-				exit 1
-				;;
-			esac
-			shift 2
-			;;
-		--with-docker)
-			INSTALL_DOCKER=true
-			CONTAINER_RUNTIME="docker"
-			shift
-			;;
-		--with-podman)
-			INSTALL_PODMAN=true
-			CONTAINER_RUNTIME="podman"
-			shift
-			;;
-		--with-ai)
-			INSTALL_AI=true
-			shift
-			;;
-		--with-python)
-			INSTALL_PYTHON=true
-			shift
-			;;
-		--with-shell-tools)
-			INSTALL_SHELL_TOOLS=true
-			shift
-			;;
-		--with-uv)
-			INSTALL_UV=true
-			shift
-			;;
-		--with-bun)
-			INSTALL_BUN=true
-			shift
-			;;
-		--with-fnm)
-			INSTALL_FNM=true
-			shift
-			;;
-		--with-go)
-			INSTALL_GO=true
-			shift
-			;;
-		--yes | -y)
-			YES_MODE=true
-			shift
-			;;
-		--skip-modules)
-			SKIP_MODULES=true
-			shift
-			;;
-		--help | -h)
-			usage
-			;;
-		*)
-			log_error "Unknown option: $1"
-			echo "Use --help for usage information"
-			exit 1
-			;;
-		esac
-	done
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+    --shell)
+      TARGET_SHELL="$2"
+      shift 2
+      ;;
+    --lang)
+      LANGUAGE="$2"
+      init_messages
+      shift 2
+      ;;
+    --container)
+      case "$2" in
+      docker)
+        INSTALL_DOCKER=true
+        INSTALL_PODMAN=false
+        ;;
+      podman)
+        INSTALL_DOCKER=false
+        INSTALL_PODMAN=true
+        ;;
+      both)
+        INSTALL_DOCKER=true
+        INSTALL_PODMAN=true
+        ;;
+      *)
+        log_error "Invalid container option: $2"
+        echo "Use docker, podman, or both"
+        exit 1
+        ;;
+      esac
+      shift 2
+      ;;
+    --with-docker)
+      INSTALL_DOCKER=true
+      CONTAINER_RUNTIME="docker"
+      shift
+      ;;
+    --with-podman)
+      INSTALL_PODMAN=true
+      CONTAINER_RUNTIME="podman"
+      shift
+      ;;
+    --with-ai)
+      INSTALL_AI=true
+      shift
+      ;;
+    --with-python)
+      INSTALL_PYTHON=true
+      shift
+      ;;
+    --with-shell-tools)
+      INSTALL_SHELL_TOOLS=true
+      shift
+      ;;
+    --with-uv)
+      INSTALL_UV=true
+      shift
+      ;;
+    --with-bun)
+      INSTALL_BUN=true
+      shift
+      ;;
+    --with-fnm)
+      INSTALL_FNM=true
+      shift
+      ;;
+    --with-go)
+      INSTALL_GO=true
+      shift
+      ;;
+    --yes | -y)
+      YES_MODE=true
+      shift
+      ;;
+    --skip-modules)
+      SKIP_MODULES=true
+      shift
+      ;;
+    --help | -h)
+      usage
+      ;;
+    *)
+      log_error "Unknown option: $1"
+      echo "Use --help for usage information"
+      exit 1
+      ;;
+    esac
+  done
 }
 
 # =============================================================================
 # Print summary
 # =============================================================================
 print_summary() {
-	cat <<'EOF'
+  cat <<'EOF'
 
 ╔═══════════════════════════════════════════════════════════════╗
 ║                   Installation Summary                        ║
 ╚═══════════════════════════════════════════════════════════════╝
 EOF
 
-	echo ""
-	echo -e "  ${COLOR_CYAN}OS:${COLOR_RESET}          ${OS_DISTRO} ${OS_VERSION} (${PACKAGE_MANAGER})"
-	echo -e "  ${COLOR_CYAN}Language:${COLOR_RESET}    ${LANGUAGE}"
-	echo -e "  ${COLOR_CYAN}Shell:${COLOR_RESET}       ${TARGET_SHELL:-interactive}"
-	echo ""
-	echo -e "  ${COLOR_CYAN}Modules:${COLOR_RESET}"
+  echo ""
+  echo -e "  ${COLOR_CYAN}OS:${COLOR_RESET}          ${OS_DISTRO} ${OS_VERSION} (${PACKAGE_MANAGER})"
+  echo -e "  ${COLOR_CYAN}Language:${COLOR_RESET}    ${LANGUAGE}"
+  echo -e "  ${COLOR_CYAN}Shell:${COLOR_RESET}       ${TARGET_SHELL:-interactive}"
+  echo ""
+  echo -e "  ${COLOR_CYAN}Modules:${COLOR_RESET}"
 
-	if [[ $SKIP_MODULES == "true" ]]; then
-		echo -e "    - (skipped)"
-	else
-		echo -e "    - Docker:    $([ "$INSTALL_DOCKER" == "true" ] && echo "${COLOR_GREEN}✓${COLOR_RESET}" || echo "${COLOR_GRAY}✗${COLOR_RESET}")"
-		echo -e "    - Podman:    $([ "$INSTALL_PODMAN" == "true" ] && echo "${COLOR_GREEN}✓${COLOR_RESET}" || echo "${COLOR_GRAY}✗${COLOR_RESET}")"
-		echo -e "    - AI Tools:  $([ "$INSTALL_AI" == "true" ] && echo "${COLOR_GREEN}✓${COLOR_RESET}" || echo "${COLOR_GRAY}✗${COLOR_RESET}")"
-		echo -e "    - Python:    $([ "$INSTALL_PYTHON" == "true" ] && echo "${COLOR_GREEN}✓${COLOR_RESET}" || echo "${COLOR_GRAY}✗${COLOR_RESET}")"
-		echo -e "    - Shell:     $([ "$INSTALL_SHELL_TOOLS" == "true" ] && echo "${COLOR_GREEN}✓${COLOR_RESET}" || echo "${COLOR_GRAY}✗${COLOR_RESET}")"
-		echo -e "    - UV:        $([ "$INSTALL_UV" == "true" ] && echo "${COLOR_GREEN}✓${COLOR_RESET}" || echo "${COLOR_GRAY}✗${COLOR_RESET}")"
-		echo -e "    - Bun:       $([ "$INSTALL_BUN" == "true" ] && echo "${COLOR_GREEN}✓${COLOR_RESET}" || echo "${COLOR_GRAY}✗${COLOR_RESET}")"
-		echo -e "    - FNM:       $([ "$INSTALL_FNM" == "true" ] && echo "${COLOR_GREEN}✓${COLOR_RESET}" || echo "${COLOR_GRAY}✗${COLOR_RESET}")"
-		echo -e "    - Go:        $([ "$INSTALL_GO" == "true" ] && echo "${COLOR_GREEN}✓${COLOR_RESET}" || echo "${COLOR_GRAY}✗${COLOR_RESET}")"
-	fi
+  if [[ $SKIP_MODULES == "true" ]]; then
+    echo -e "    - (skipped)"
+  else
+    echo -e "    - Docker:    $([ "$INSTALL_DOCKER" == "true" ] && echo "${COLOR_GREEN}✓${COLOR_RESET}" || echo "${COLOR_GRAY}✗${COLOR_RESET}")"
+    echo -e "    - Podman:    $([ "$INSTALL_PODMAN" == "true" ] && echo "${COLOR_GREEN}✓${COLOR_RESET}" || echo "${COLOR_GRAY}✗${COLOR_RESET}")"
+    echo -e "    - AI Tools:  $([ "$INSTALL_AI" == "true" ] && echo "${COLOR_GREEN}✓${COLOR_RESET}" || echo "${COLOR_GRAY}✗${COLOR_RESET}")"
+    echo -e "    - Python:    $([ "$INSTALL_PYTHON" == "true" ] && echo "${COLOR_GREEN}✓${COLOR_RESET}" || echo "${COLOR_GRAY}✗${COLOR_RESET}")"
+    echo -e "    - Shell:     $([ "$INSTALL_SHELL_TOOLS" == "true" ] && echo "${COLOR_GREEN}✓${COLOR_RESET}" || echo "${COLOR_GRAY}✗${COLOR_RESET}")"
+    echo -e "    - UV:        $([ "$INSTALL_UV" == "true" ] && echo "${COLOR_GREEN}✓${COLOR_RESET}" || echo "${COLOR_GRAY}✗${COLOR_RESET}")"
+    echo -e "    - Bun:       $([ "$INSTALL_BUN" == "true" ] && echo "${COLOR_GREEN}✓${COLOR_RESET}" || echo "${COLOR_GRAY}✗${COLOR_RESET}")"
+    echo -e "    - FNM:       $([ "$INSTALL_FNM" == "true" ] && echo "${COLOR_GREEN}✓${COLOR_RESET}" || echo "${COLOR_GRAY}✗${COLOR_RESET}")"
+    echo -e "    - Go:        $([ "$INSTALL_GO" == "true" ] && echo "${COLOR_GREEN}✓${COLOR_RESET}" || echo "${COLOR_GRAY}✗${COLOR_RESET}")"
+  fi
 
-	echo ""
-	echo -e "  ${COLOR_CYAN}Dotfiles:${COLOR_RESET}     ${SCRIPT_DIR}/dotfiles/"
-	echo ""
+  echo ""
+  echo -e "  ${COLOR_CYAN}Dotfiles:${COLOR_RESET}     ${SCRIPT_DIR}/dotfiles/"
+  echo ""
 }
 
 # =============================================================================
 # Post-install checks
 # =============================================================================
 post_install_checks() {
-	log_step "Running post-install checks..."
+  log_step "Running post-install checks..."
 
-	echo ""
-	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	echo "  Installed Tools"
-	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "  Installed Tools"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-	# Check core tools
-	local tools=("git" "curl" "wget" "unzip")
-	for tool in "${tools[@]}"; do
-		if cmd_exists "$tool"; then
-			local version
-			version=$("$tool" --version 2>/dev/null | head -1 || echo "installed")
-			log_success "$tool: $version"
-		else
-			log_warn "$tool: not found"
-		fi
-	done
+  # Check core tools
+  local tools=("git" "curl" "wget" "unzip")
+  for tool in "${tools[@]}"; do
+    if cmd_exists "$tool"; then
+      local version
+      version=$("$tool" --version 2>/dev/null | head -1 || echo "installed")
+      log_success "$tool: $version"
+    else
+      log_warn "$tool: not found"
+    fi
+  done
 
-	# Check shell
-	if cmd_exists "$TARGET_SHELL"; then
-		local shell_version
-		shell_version=$("$TARGET_SHELL" --version 2>/dev/null | head -1 || echo "installed")
-		log_success "$TARGET_SHELL: $shell_version"
-	fi
+  # Check shell
+  if cmd_exists "$TARGET_SHELL"; then
+    local shell_version
+    shell_version=$("$TARGET_SHELL" --version 2>/dev/null | head -1 || echo "installed")
+    log_success "$TARGET_SHELL: $shell_version"
+  fi
 
-	# Check starship
-	if cmd_exists starship; then
-		log_success "starship: $(starship --version)"
-	fi
+  # Check starship
+  if cmd_exists starship; then
+    log_success "starship: $(starship --version)"
+  fi
 
-	# Check fzf
-	if cmd_exists fzf; then
-		log_success "fzf: installed"
-	fi
+  # Check fzf
+  if cmd_exists fzf; then
+    log_success "fzf: installed"
+  fi
 
-	# Check tmux
-	if cmd_exists tmux; then
-		log_success "tmux: installed"
-	fi
+  # Check tmux
+  if cmd_exists tmux; then
+    log_success "tmux: installed"
+  fi
 
-	# Check Docker
-	if [[ $INSTALL_DOCKER == "true" ]] && cmd_exists docker; then
-		log_success "docker: $(docker --version)"
-	fi
+  # Check Docker
+  if [[ $INSTALL_DOCKER == "true" ]] && cmd_exists docker; then
+    log_success "docker: $(docker --version)"
+  fi
 
-	# Check Ollama
-	if [[ $INSTALL_AI == "true" ]] && cmd_exists ollama; then
-		log_success "ollama: $(ollama --version)"
-	fi
+  # Check Ollama
+  if [[ $INSTALL_AI == "true" ]] && cmd_exists ollama; then
+    log_success "ollama: $(ollama --version)"
+  fi
 
-	# Check Python tools
-	if [[ $INSTALL_PYTHON == "true" ]]; then
-		if cmd_exists uv; then
-			log_success "uv: $(uv --version)"
-		fi
-		if cmd_exists pipx; then
-			log_success "pipx: $(pipx --version)"
-		fi
-	fi
+  # Check Python tools
+  if [[ $INSTALL_PYTHON == "true" ]]; then
+    if cmd_exists uv; then
+      log_success "uv: $(uv --version)"
+    fi
+    if cmd_exists pipx; then
+      log_success "pipx: $(pipx --version)"
+    fi
+  fi
 
-	# Check Shell tools
-	if [[ $INSTALL_SHELL_TOOLS == "true" ]]; then
-		if cmd_exists shellcheck; then
-			log_success "shellcheck: $(shellcheck --version | head -1)"
-		fi
-		if cmd_exists shfmt; then
-			log_success "shfmt: $(shfmt --version)"
-		fi
-	fi
+  # Check Shell tools
+  if [[ $INSTALL_SHELL_TOOLS == "true" ]]; then
+    if cmd_exists shellcheck; then
+      log_success "shellcheck: $(shellcheck --version | head -1)"
+    fi
+    if cmd_exists shfmt; then
+      log_success "shfmt: $(shfmt --version)"
+    fi
+  fi
 
-	# Check UV
-	if [[ $INSTALL_UV == "true" ]]; then
-		if cmd_exists uv; then
-			log_success "uv: $(uv --version)"
-		fi
-	fi
+  # Check UV
+  if [[ $INSTALL_UV == "true" ]]; then
+    if cmd_exists uv; then
+      log_success "uv: $(uv --version)"
+    fi
+  fi
 
-	# Check Bun
-	if [[ $INSTALL_BUN == "true" ]]; then
-		if cmd_exists bun; then
-			log_success "bun: $(bun --version)"
-		fi
-	fi
+  # Check Bun
+  if [[ $INSTALL_BUN == "true" ]]; then
+    if cmd_exists bun; then
+      log_success "bun: $(bun --version)"
+    fi
+  fi
 
-	# Check FNM
-	if [[ $INSTALL_FNM == "true" ]]; then
-		if cmd_exists fnm; then
-			log_success "fnm: $(fnm --version)"
-		fi
-	fi
+  # Check FNM
+  if [[ $INSTALL_FNM == "true" ]]; then
+    if cmd_exists fnm; then
+      log_success "fnm: $(fnm --version)"
+    fi
+  fi
 
-	# Check Go
-	if [[ $INSTALL_GO == "true" ]]; then
-		if cmd_exists go; then
-			log_success "go: $(go version)"
-		fi
-	fi
+  # Check Go
+  if [[ $INSTALL_GO == "true" ]]; then
+    if cmd_exists go; then
+      log_success "go: $(go version)"
+    fi
+  fi
 
-	echo ""
-	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 }
 
 # =============================================================================
 # Print welcome message
 # =============================================================================
 print_welcome() {
-	cat <<EOF
+  cat <<EOF
 
 ╔═══════════════════════════════════════════════════════════════╗
 ║                                                               ║
@@ -421,119 +421,172 @@ EOF
 # Main function
 # =============================================================================
 main() {
-	# Parse arguments
-	parse_args "$@"
+  # Parse arguments
+  parse_args "$@"
 
-	# Initialize language messages
-	init_messages
+  # Initialize language messages
+  init_messages
 
-	# Export language for subshells
-	export LANGUAGE
+  # Export language for subshells
+  export LANGUAGE
 
-	# Print banner
-	print_banner
-	print_welcome
+  # Print banner
+  print_banner
+  print_welcome
 
-	# Detect OS
-	source "${LIB_DIR}/detect_os.sh"
-	get_sudo
-	detect_os
-	export_os_info
+  # Detect OS
+  source "${LIB_DIR}/detect_os.sh"
+  get_sudo
+  detect_os
+  export_os_info
 
-	# Setup shell
-	source "${LIB_DIR}/shell_setup.sh"
-	setup_shell "${TARGET_SHELL:-}"
+  # Setup shell
+  source "${LIB_DIR}/shell_setup.sh"
+  setup_shell "${TARGET_SHELL:-}"
 
-	# Install Python tools
-	if [[ $SKIP_MODULES == "false" ]] && [[ $INSTALL_PYTHON == "true" ]]; then
-		source "${LIB_DIR}/modules/python.sh"
-		install_python_tools
-	fi
+  # Install Python tools
+  if [[ $SKIP_MODULES == "false" ]] && [[ $INSTALL_PYTHON == "true" ]]; then
+    source "${LIB_DIR}/modules/python.sh"
+    install_python_tools
+  fi
 
-	# Install Shell tools
-	if [[ $SKIP_MODULES == "false" ]] && [[ $INSTALL_SHELL_TOOLS == "true" ]]; then
-		source "${LIB_DIR}/modules/shell.sh"
-		install_shell_tools
-	fi
+  # Install Shell tools
+  if [[ $SKIP_MODULES == "false" ]] && [[ $INSTALL_SHELL_TOOLS == "true" ]]; then
+    log_step "Installing Shell tools..."
+    if [[ "$PACKAGE_MANAGER" == "brew" ]]; then
+      brew install shellcheck shfmt
+    elif [[ "$PACKAGE_MANAGER" == "apk" ]]; then
+      apk add --no-cache shellcheck shfmt
+    elif [[ "$PACKAGE_MANAGER" == "pacman" ]]; then
+      pacman -S --noconfirm shellcheck shfmt
+    elif [[ "$PACKAGE_MANAGER" == "apt" ]]; then
+      apt-get update && apt-get install -y shellcheck
+      if ! cmd_exists shfmt; then
+        if cmd_exists go; then
+          go install mvdan.cc/sh/v3/cmd/shfmt@latest
+        else
+          apt-get install -y golang-go
+          go install mvdan.cc/sh/v3/cmd/shfmt@latest
+        fi
+        ln -sf "$HOME/go/bin/shfmt" /usr/local/bin/shfmt 2>/dev/null || true
+      fi
+    elif [[ "$PACKAGE_MANAGER" == "dnf" ]] || [[ "$PACKAGE_MANAGER" == "yum" ]]; then
+      dnf install -y shellcheck
+      if ! cmd_exists shfmt; then
+        local shfmt_version="v3.8.0"
+        local shfmt_url="https://github.com/mvdan/sh/releases/download/${shfmt_version}/shfmt_${shfmt_version}_linux_amd64"
+        curl -sSL "$shfmt_url" -o /usr/local/bin/shfmt
+        chmod +x /usr/local/bin/shfmt
+      fi
+    else
+      curl -sSL https://raw.githubusercontent.com/koalaman/shellcheck/master/install.sh | sudo bash || true
+      local shfmt_version="v3.8.0"
+      curl -sSL "https://github.com/mvdan/sh/releases/download/${shfmt_version}/shfmt_${shfmt_version}_linux_amd64" -o /usr/local/bin/shfmt
+      chmod +x /usr/local/bin/shfmt
+    fi
+    log_success "Shell tools installed!"
+  fi
 
-	# Install UV
-	if [[ $SKIP_MODULES == "false" ]] && [[ $INSTALL_UV == "true" ]]; then
-		log_step "Installing UV..."
-		curl -LsSf https://astral.sh/uv/install.sh | sh
-	fi
+  # Install UV
+  if [[ $SKIP_MODULES == "false" ]] && [[ $INSTALL_UV == "true" ]]; then
+    log_step "Installing UV..."
+    if [[ "$PACKAGE_MANAGER" == "brew" ]]; then
+      brew install uv
+    elif [[ "$PACKAGE_MANAGER" == "pacman" ]]; then
+      pacman -S --noconfirm uv
+    elif [[ "$PACKAGE_MANAGER" == "apk" ]]; then
+      apk add --no-cache uv
+    elif [[ "$PACKAGE_MANAGER" == "apt" ]] || [[ "$PACKAGE_MANAGER" == "dnf" ]] || [[ "$PACKAGE_MANAGER" == "yum" ]]; then
+      curl -LsSf https://astral.sh/uv/install.sh | sh
+    else
+      curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+  fi
 
-	# Install Bun
-	if [[ $SKIP_MODULES == "false" ]] && [[ $INSTALL_BUN == "true" ]]; then
-		log_step "Installing Bun..."
-		curl -fsSL https://bun.sh/install | bash
-	fi
+  # Install Bun
+  if [[ $SKIP_MODULES == "false" ]] && [[ $INSTALL_BUN == "true" ]]; then
+    log_step "Installing Bun..."
+    if [[ "$PACKAGE_MANAGER" == "brew" ]]; then
+      brew install bun
+    elif [[ "$PACKAGE_MANAGER" == "pacman" ]]; then
+      pacman -S --noconfirm bun
+    elif [[ "$PACKAGE_MANAGER" == "apt" ]] || [[ "$PACKAGE_MANAGER" == "dnf" ]] || [[ "$PACKAGE_MANAGER" == "yum" ]]; then
+      curl -fsSL https://bun.sh/install | bash
+    else
+      curl -fsSL https://bun.sh/install | bash
+    fi
+  fi
 
-	# Install FNM
-	if [[ $SKIP_MODULES == "false" ]] && [[ $INSTALL_FNM == "true" ]]; then
-		log_step "Installing FNM..."
-		curl -fsSL https://fnm.vercel.app/install | bash
-	fi
+  # Install FNM
+  if [[ $SKIP_MODULES == "false" ]] && [[ $INSTALL_FNM == "true" ]]; then
+    log_step "Installing FNM..."
+    if [[ "$PACKAGE_MANAGER" == "brew" ]]; then
+      brew install fnm
+    elif [[ "$PACKAGE_MANAGER" == "pacman" ]]; then
+      pacman -S --noconfirm fnm
+    elif [[ "$PACKAGE_MANAGER" == "apt" ]] || [[ "$PACKAGE_MANAGER" == "dnf" ]] || [[ "$PACKAGE_MANAGER" == "yum" ]]; then
+      curl -fsSL https://fnm.vercel.app/install | bash
+    else
+      curl -fsSL https://fnm.vercel.app/install | bash
+    fi
+  fi
 
-	# Install Go
-	if [[ $SKIP_MODULES == "false" ]] && [[ $INSTALL_GO == "true" ]]; then
-		log_step "Installing Go..."
-		case "$PACKAGE_MANAGER" in
-		apt)
-			apt-get install -y golang-go
-			;;
-		dnf | yum)
-			dnf install -y golang
-			;;
-		pacman)
-			pacman -S --noconfirm go
-			;;
-		brew)
-			brew install go
-			;;
-		apk)
-			apk add --no-cache go
-			;;
-		esac
-	fi
+  # Install Go
+  if [[ $SKIP_MODULES == "false" ]] && [[ $INSTALL_GO == "true" ]]; then
+    log_step "Installing Go..."
+    if [[ "$PACKAGE_MANAGER" == "brew" ]]; then
+      brew install go
+    elif [[ "$PACKAGE_MANAGER" == "apk" ]]; then
+      apk add --no-cache go
+    elif [[ "$PACKAGE_MANAGER" == "pacman" ]]; then
+      pacman -S --noconfirm go
+    elif [[ "$PACKAGE_MANAGER" == "apt" ]]; then
+      apt-get install -y golang-go
+    elif [[ "$PACKAGE_MANAGER" == "dnf" ]] || [[ "$PACKAGE_MANAGER" == "yum" ]]; then
+      dnf install -y golang
+    else
+      curl -sSL https://go.dev/dl/go1.21.0.linux-amd64.tar.gz | tar -C /usr/local -xzf -
+    fi
+  fi
 
-	# Prompt for container runtime if neither Docker nor Podman is selected
-	if [[ $SKIP_MODULES == "false" ]] && [[ $INSTALL_DOCKER == "false" ]] && [[ $INSTALL_PODMAN == "false" ]]; then
-		if ask_confirmation "Install container runtime (Docker/Podman)?" "n"; then
-			source "${LIB_DIR}/shell_setup.sh"
-			prompt_container_selection
-		fi
-	fi
+  # Prompt for container runtime if neither Docker nor Podman is selected
+  if [[ $SKIP_MODULES == "false" ]] && [[ $INSTALL_DOCKER == "false" ]] && [[ $INSTALL_PODMAN == "false" ]]; then
+    if ask_confirmation "Install container runtime (Docker/Podman)?" "n"; then
+      source "${LIB_DIR}/shell_setup.sh"
+      prompt_container_selection
+    fi
+  fi
 
-	# Install Docker
-	if [[ $SKIP_MODULES == "false" ]] && [[ $INSTALL_DOCKER == "true" ]]; then
-		source "${LIB_DIR}/modules/docker.sh"
-		install_docker
-	fi
+  # Install Docker
+  if [[ $SKIP_MODULES == "false" ]] && [[ $INSTALL_DOCKER == "true" ]]; then
+    source "${LIB_DIR}/modules/docker.sh"
+    install_docker
+  fi
 
-	# Install Podman
-	if [[ $SKIP_MODULES == "false" ]] && [[ $INSTALL_PODMAN == "true" ]]; then
-		source "${LIB_DIR}/modules/docker.sh"
-		install_podman
-	fi
+  # Install Podman
+  if [[ $SKIP_MODULES == "false" ]] && [[ $INSTALL_PODMAN == "true" ]]; then
+    source "${LIB_DIR}/modules/docker.sh"
+    install_podman
+  fi
 
-	# Install AI tools
-	if [[ $SKIP_MODULES == "false" ]] && [[ $INSTALL_AI == "true" ]]; then
-		source "${LIB_DIR}/modules/ai.sh"
-		install_ai_tools
-	fi
+  # Install AI tools
+  if [[ $SKIP_MODULES == "false" ]] && [[ $INSTALL_AI == "true" ]]; then
+    source "${LIB_DIR}/modules/ai.sh"
+    install_ai_tools
+  fi
 
-	# Setup dotfiles
-	source "${LIB_DIR}/dotfiles.sh"
-	setup_dotfiles "$TARGET_SHELL"
+  # Setup dotfiles
+  source "${LIB_DIR}/dotfiles.sh"
+  setup_dotfiles "$TARGET_SHELL"
 
-	# Print summary
-	print_summary
+  # Print summary
+  print_summary
 
-	# Post-install checks
-	post_install_checks
+  # Post-install checks
+  post_install_checks
 
-	# Final message
-	cat <<EOF
+  # Final message
+  cat <<EOF
 
 ╔═══════════════════════════════════════════════════════════════╗
 ║                                                               ║
