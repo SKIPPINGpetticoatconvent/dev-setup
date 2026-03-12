@@ -253,3 +253,4 @@ starship preset gruvbox-rainbow > ~/.config/starship.toml
 <p align="center">
   Made with ❤️ by <a href="https://github.com/SKIPPINGpetticoatconvent">SKIPPINGpetticoatconvent</a>
 </p>
+test
