@@ -36,6 +36,7 @@ export INSTALL_DOCKER=false
 export INSTALL_PODMAN=false
 export INSTALL_AI=false
 export INSTALL_PYTHON=false
+export INSTALL_SHELL_TOOLS=false
 export YES_MODE=false
 export SKIP_MODULES=false
 export LANGUAGE="en"
@@ -69,6 +70,7 @@ dev-setup - 开发环境一键配置脚本
     --with-podman          安装 Podman
     --with-ai            安装 AI 工具 (Ollama)
     --with-python         安装 Python 工具 (uv, pipx)
+    --with-shell-tools    安装 Shell 工具 (shfmt, shellcheck)
     --yes, -y             跳过所有确认
     --skip-modules        跳过可选模块
     --help                显示帮助
@@ -113,6 +115,7 @@ Options:
     --with-podman          Install Podman
     --with-ai            Install AI tools (Ollama)
     --with-python         Install Python tools (uv, pipx)
+    --with-shell-tools    Install Shell tools (shfmt, shellcheck)
     --yes, -y             Skip all confirmations
     --skip-modules        Skip optional modules (docker, ai, python)
     --help                Show this help message
@@ -198,6 +201,10 @@ parse_args() {
       INSTALL_PYTHON=true
       shift
       ;;
+    --with-shell-tools)
+      INSTALL_SHELL_TOOLS=true
+      shift
+      ;;
     --yes | -y)
       YES_MODE=true
       shift
@@ -243,6 +250,7 @@ EOF
     echo -e "    - Podman:    $([ "$INSTALL_PODMAN" == "true" ] && echo "${COLOR_GREEN}✓${COLOR_RESET}" || echo "${COLOR_GRAY}✗${COLOR_RESET}")"
     echo -e "    - AI Tools:  $([ "$INSTALL_AI" == "true" ] && echo "${COLOR_GREEN}✓${COLOR_RESET}" || echo "${COLOR_GRAY}✗${COLOR_RESET}")"
     echo -e "    - Python:    $([ "$INSTALL_PYTHON" == "true" ] && echo "${COLOR_GREEN}✓${COLOR_RESET}" || echo "${COLOR_GRAY}✗${COLOR_RESET}")"
+    echo -e "    - Shell:     $([ "$INSTALL_SHELL_TOOLS" == "true" ] && echo "${COLOR_GREEN}✓${COLOR_RESET}" || echo "${COLOR_GRAY}✗${COLOR_RESET}")"
   fi
 
   echo ""
@@ -315,6 +323,16 @@ post_install_checks() {
     fi
   fi
 
+  # Check Shell tools
+  if [[ $INSTALL_SHELL_TOOLS == "true" ]]; then
+    if cmd_exists shellcheck; then
+      log_success "shellcheck: $(shellcheck --version | head -1)"
+    fi
+    if cmd_exists shfmt; then
+      log_success "shfmt: $(shfmt --version)"
+    fi
+  fi
+
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 }
@@ -370,6 +388,12 @@ main() {
   if [[ $SKIP_MODULES == "false" ]] && [[ $INSTALL_PYTHON == "true" ]]; then
     source "${LIB_DIR}/modules/python.sh"
     install_python_tools
+  fi
+
+  # Install Shell tools
+  if [[ $SKIP_MODULES == "false" ]] && [[ $INSTALL_SHELL_TOOLS == "true" ]]; then
+    source "${LIB_DIR}/modules/shell.sh"
+    install_shell_tools
   fi
 
   # Prompt for container runtime if neither Docker nor Podman is selected
