@@ -222,6 +222,18 @@ starship preset gruvbox-rainbow > ~/.config/starship.toml
 
 ---
 
+## 测试
+
+完整测试套件已全部跑通，无错误。
+
+- **快速测试**（无 Docker，约 1 秒）：`./tests/run_tests.sh` 或 `./tests/e2e.sh`
+- **Docker 最小 E2E**（单容器，仅 fish）：`E2E_DOCKER=1 ./tests/run_tests.sh`
+- **完整测试**（含多工具容器验证）：`E2E_DOCKER_FULL=1 ./tests/run_tests.sh`
+
+可选 [bats](https://github.com/bats-core/bats-core) 用于额外 CLI/库用例（安装后自动在 `run_tests.sh` 中执行）。详见 [tests/README.md](./tests/README.md)。
+
+---
+
 ## 贡献
 
 欢迎提交 Issue 和 Pull Request！
@@ -252,4 +264,3 @@ starship preset gruvbox-rainbow > ~/.config/starship.toml
 <p align="center">
   Made with ❤️ by <a href="https://github.com/SKIPPINGpetticoatconvent">SKIPPINGpetticoatconvent</a>
 </p>
-test
