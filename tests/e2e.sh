@@ -402,6 +402,216 @@ test_docker_e2e_with_tools() {
 }
 
 # -----------------------------------------------------------------------------
+# LXD E2E：系统容器内真实安装，最大程度模拟真实系统；支持多镜像以验证各发行版兼容性
+# 用法: lxd_e2e_verify_tools "容器名" "安装日志" "日志目录" "label" "cmd" ["label" "cmd" ...]
+# -----------------------------------------------------------------------------
+lxd_e2e_verify_tools() {
+  local container_name="$1"
+  local install_log="$2"
+  local log_dir="$3"
+  shift 3
+  local diag_log="${log_dir}/lxd-diagnostic-$$.log"
+  echo ""
+  echo "  ---------- 最后验证 (Final verification) ----------"
+  local failed=""
+  while [[ $# -ge 2 ]]; do
+    local label="$1"
+    local cmd="$2"
+    shift 2
+    local optional=false
+    if [[ "$label" == optional:* ]]; then
+      optional=true
+      label="${label#optional:}"
+    fi
+    local out
+    out=$(lxc exec "$container_name" -- bash -c "$cmd" 2>&1) || true
+    out=$(echo "$out" | tr -d '\r' | head -1)
+    if [[ -n "$out" ]] && [[ "$out" != *"command not found"* ]] && [[ "$out" != *"not found"* ]] && [[ "$out" != *"No such file"* ]]; then
+      echo "    $label: $out"
+    else
+      echo "    $label: FAIL (no version output)"
+      [[ "$optional" != true ]] && failed="$failed $label"
+    fi
+  done
+  echo "  --------------------------------------------------------"
+  if [[ -n "$failed" ]]; then
+    {
+      echo "========== 验证失败: $failed =========="
+      echo "========== 安装日志最后 100 行 =========="
+      tail -100 "$install_log" 2>/dev/null
+    } >"$diag_log" 2>&1
+    echo ""
+    echo "  [LXD E2E] 验证失败:$failed"
+    echo "  诊断: $diag_log"
+    return 1
+  fi
+  return 0
+}
+
+# 检查 LXD 可用（lxc 客户端且为 LXD 后端）
+lxd_available() {
+  command -v lxc >/dev/null 2>&1 || return 1
+  lxc info 2>/dev/null | grep -q "driver: lxd" || return 1
+  return 0
+}
+
+# 在容器内执行安装前准备：Debian/Ubuntu 用 apt，Fedora 等用 dnf（按需扩展）
+lxd_e2e_bootstrap() {
+  local cname="$1"
+  local repo_path="$2"
+  # 检测发行版并安装基础依赖
+  if lxc exec "$cname" -- bash -c "command -v apt-get >/dev/null 2>&1"; then
+    lxc exec "$cname" -- bash -c "grep -q ubuntu /etc/apt/sources.list 2>/dev/null && (grep -q universe /etc/apt/sources.list 2>/dev/null || echo 'deb http://archive.ubuntu.com/ubuntu/ jammy universe' >> /etc/apt/sources.list)" 2>/dev/null || true
+    lxc exec "$cname" -- env DEBIAN_FRONTEND=noninteractive bash -c "apt-get update -qq && apt-get install -y -qq ca-certificates curl git fish >/dev/null && (update-ca-certificates 2>/dev/null || true)" 2>/dev/null || \
+    lxc exec "$cname" -- env DEBIAN_FRONTEND=noninteractive bash -c "apt-get update -qq && apt-get install -y -qq ca-certificates curl git fish >/dev/null" 2>/dev/null
+  elif lxc exec "$cname" -- bash -c "command -v dnf >/dev/null 2>&1"; then
+    lxc exec "$cname" -- bash -c "dnf install -y -q ca-certificates curl git fish 2>/dev/null" 2>/dev/null || true
+  else
+    echo "  [LXD E2E] Unsupported distro in image (no apt-get/dnf), skip bootstrap"
+    return 1
+  fi
+  # 等待 apt/dnf 锁释放
+  lxc exec "$cname" -- bash -c 'n=0; while [ "$n" -lt 30 ]; do [ -f /var/lib/apt/lists/lock ] || [ -f /var/lib/dpkg/lock-frontend ] 2>/dev/null || [ -f /var/lib/dnf/lock ] 2>/dev/null || break; n=$((n+1)); sleep 1; done' 2>/dev/null || true
+  return 0
+}
+
+# 单镜像 LXD 最小 E2E：仅 fish，用于兼容性矩阵
+lxd_e2e_minimal_one() {
+  local image="$1"
+  local cname="dev-setup-e2e-lxd-$$-${image//[^a-z0-9]/_}"
+  local log_dir="${SCRIPT_DIR}/.e2e-logs"
+  local install_log="${log_dir}/lxd-install-$$-${image//[^a-z0-9]/_}.log"
+  local repo_mount="/mnt/dev-setup-repo"
+  mkdir -p "$log_dir"
+
+  if ! lxc launch -e "$image" "$cname" >/dev/null 2>&1; then
+    echo "  [LXD E2E] Failed to launch container: $image"
+    return 1
+  fi
+  trap "lxc stop $cname 2>/dev/null || true; trap - EXIT" EXIT
+
+  lxc config device add "$cname" repo disk "source=${REPO_ROOT}" "path=${repo_mount}" 2>/dev/null || { lxc stop "$cname" 2>/dev/null; return 1; }
+
+  local i
+  for i in 1 2 3 4 5 6 7 8 9 10; do
+    lxc exec "$cname" -- bash -c "command -v curl >/dev/null 2>&1 || true" 2>/dev/null && break
+    sleep 1
+  done
+  if ! lxd_e2e_bootstrap "$cname" "$repo_mount"; then
+    lxc stop "$cname" 2>/dev/null; trap - EXIT; return 1
+  fi
+  sleep 2
+
+  printf "  [LXD E2E] %s: Running install (log: %s)\n" "$image" "$install_log"
+  if ! lxc exec "$cname" -- env DEBIAN_FRONTEND=noninteractive bash -c "cd ${repo_mount} && ./install.sh --shell fish --skip-modules --yes" >"$install_log" 2>&1; then
+    echo "  [LXD E2E] $image: Install failed, see $install_log"
+    lxc stop "$cname" 2>/dev/null; trap - EXIT; return 1
+  fi
+
+  if ! lxc exec "$cname" -- fish -c "echo ok" >>"$install_log" 2>&1; then
+    echo "  [LXD E2E] $image: Fish check failed"
+    lxc stop "$cname" 2>/dev/null; trap - EXIT; return 1
+  fi
+
+  lxd_e2e_verify_tools "$cname" "$install_log" "$log_dir" \
+    "fish" "fish --version 2>&1 | head -1" || { lxc stop "$cname" 2>/dev/null; trap - EXIT; return 1; }
+
+  lxc stop "$cname" >/dev/null 2>&1 || true
+  trap - EXIT
+  echo "  [LXD E2E] $image: 安装成功"
+  return 0
+}
+
+# 单镜像 LXD 完整 E2E：fish + zsh + uv + bun + fnm + go（仅限 Debian/Ubuntu 系，dnf 系可后续扩展）
+lxd_e2e_with_tools_one() {
+  local image="$1"
+  local cname="dev-setup-e2e-lxd-tools-$$-${image//[^a-z0-9]/_}"
+  local log_dir="${SCRIPT_DIR}/.e2e-logs"
+  local install_log="${log_dir}/lxd-install-tools-$$-${image//[^a-z0-9]/_}.log"
+  local repo_mount="/mnt/dev-setup-repo"
+  mkdir -p "$log_dir"
+
+  if ! lxc launch -e "$image" "$cname" >/dev/null 2>&1; then
+    echo "  [LXD E2E tools] Failed to launch: $image"
+    return 1
+  fi
+  trap "lxc stop $cname 2>/dev/null || true; trap - EXIT" EXIT
+
+  lxc config device add "$cname" repo disk "source=${REPO_ROOT}" "path=${repo_mount}" 2>/dev/null || { lxc stop "$cname" 2>/dev/null; return 1; }
+
+  local i
+  for i in 1 2 3 4 5 6 7 8 9 10; do
+    lxc exec "$cname" -- bash -c "command -v curl >/dev/null 2>&1 || true" 2>/dev/null && break
+    sleep 1
+  done
+  # 安装 unzip/zsh 等（Ubuntu/Debian）
+  if lxc exec "$cname" -- bash -c "command -v apt-get >/dev/null 2>&1"; then
+    lxc exec "$cname" -- bash -c "grep -q universe /etc/apt/sources.list 2>/dev/null || echo 'deb http://archive.ubuntu.com/ubuntu/ jammy universe' >> /etc/apt/sources.list" 2>/dev/null || true
+    lxc exec "$cname" -- env DEBIAN_FRONTEND=noninteractive bash -c "apt-get update -qq && apt-get install -y -qq ca-certificates curl git fish unzip zsh >/dev/null" 2>/dev/null || true
+  else
+    lxc stop "$cname" 2>/dev/null; trap - EXIT; echo "  [LXD E2E tools] Only Debian/Ubuntu images supported for full tools test"; return 1
+  fi
+  lxc exec "$cname" -- bash -c 'n=0; while [ "$n" -lt 30 ]; do [ -f /var/lib/dpkg/lock-frontend ] 2>/dev/null && n=$((n+1)) && sleep 1 || break; done' 2>/dev/null || true
+  sleep 2
+
+  printf "  [LXD E2E tools] %s: Running install (log: %s)\n" "$image" "$install_log"
+  if ! lxc exec "$cname" -- env DEBIAN_FRONTEND=noninteractive bash -c "cd ${repo_mount} && ./install.sh --shell fish --with-uv --with-go --with-bun --with-fnm --yes" >"$install_log" 2>&1; then
+    echo "  [LXD E2E tools] $image: Install failed, see $install_log"
+    lxc stop "$cname" 2>/dev/null; trap - EXIT; return 1
+  fi
+
+  lxc exec "$cname" -- bash -c 'export PATH="$HOME/.local/share/fnm:$PATH"; eval "$($HOME/.local/share/fnm/fnm env 2>/dev/null)"; fnm install --lts 2>/dev/null; fnm use lts-latest 2>/dev/null' >>"$install_log" 2>&1 || true
+
+  if ! lxd_e2e_verify_tools "$cname" "$install_log" "$log_dir" \
+    "fish" "fish --version 2>&1 | head -1" \
+    "zsh" "zsh --version 2>&1" \
+    "uv" '$HOME/.local/bin/uv --version 2>&1' \
+    "bun" '$HOME/.bun/bin/bun --version 2>&1' \
+    "optional:go" "go version 2>&1" \
+    "fnm" '$HOME/.local/share/fnm/fnm --version 2>&1' \
+    "node" 'export PATH="$HOME/.local/share/fnm:$PATH" && eval "$($HOME/.local/share/fnm/fnm env 2>/dev/null)" && node -v 2>&1'; then
+    lxc stop "$cname" 2>/dev/null; trap - EXIT; return 1
+  fi
+
+  lxc stop "$cname" >/dev/null 2>&1 || true
+  trap - EXIT
+  echo "  [LXD E2E tools] $image: 安装与验证成功"
+  return 0
+}
+
+test_lxd_e2e_minimal() {
+  lxd_available || { echo "LXD not found or not usable (lxc + driver lxd), skip"; return 0; }
+  local images="${E2E_LXD_IMAGES:-ubuntu:22.04}"
+  local failed=""
+  for img in $images; do
+    if ! lxd_e2e_minimal_one "$img"; then
+      failed="$failed $img"
+    fi
+  done
+  if [[ -n "$failed" ]]; then
+    echo "  [LXD E2E] Failed images:$failed"
+    return 1
+  fi
+  return 0
+}
+
+test_lxd_e2e_with_tools() {
+  lxd_available || { echo "LXD not found or not usable, skip"; return 0; }
+  local images="${E2E_LXD_IMAGES:-ubuntu:22.04}"
+  local failed=""
+  for img in $images; do
+    if ! lxd_e2e_with_tools_one "$img"; then
+      failed="$failed $img"
+    fi
+  done
+  if [[ -n "$failed" ]]; then
+    echo "  [LXD E2E tools] Failed images:$failed"
+    return 1
+  fi
+  return 0
+}
+
+# -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
 main() {
@@ -434,6 +644,15 @@ main() {
   run_test "Parse --skip-modules" test_parse_skip_modules
   run_test "Parse all options combined" test_parse_all_options_combined
 
+  if [[ "${E2E_LXD:-0}" == "1" ]] || [[ "${E2E_LXD_FULL:-0}" == "1" ]]; then
+    run_test "LXD E2E minimal install (system container)" test_lxd_e2e_minimal
+    if [[ "${E2E_LXD_FULL:-0}" == "1" ]]; then
+      run_test "LXD E2E with tools (fish,zsh,uv,bun,go,fnm,node)" test_lxd_e2e_with_tools
+    else
+      echo "  (Skip LXD tools test; set E2E_LXD_FULL=1 to include)"
+    fi
+  fi
+
   if [[ "${E2E_DOCKER:-0}" == "1" ]] || [[ "${E2E_DOCKER_FULL:-0}" == "1" ]]; then
     run_test "Docker E2E minimal install" test_docker_e2e_minimal
     if [[ "${E2E_DOCKER_FULL:-0}" == "1" ]]; then
@@ -441,9 +660,11 @@ main() {
     else
       echo "  (Skip heavy tools test; set E2E_DOCKER_FULL=1 to include)"
     fi
-  else
+  fi
+  if [[ "${E2E_LXD:-0}" != "1" && "${E2E_LXD_FULL:-0}" != "1" && "${E2E_DOCKER:-0}" != "1" && "${E2E_DOCKER_FULL:-0}" != "1" ]]; then
     echo ""
-    echo "Optional: E2E_DOCKER=1 (minimal container) | E2E_DOCKER_FULL=1 (+ tools verification)"
+    echo "Optional: E2E_LXD=1 (LXD system container) | E2E_LXD_FULL=1 (+ tools)"
+    echo "          E2E_DOCKER=1 (minimal container) | E2E_DOCKER_FULL=1 (+ tools verification)"
   fi
 
   echo ""

@@ -42,6 +42,13 @@ else
   echo "  (bats not found; install: npm i -g bats, or apt install bats)"
 fi
 
+if [[ "${E2E_LXD:-0}" == "1" ]] || [[ "${E2E_LXD_FULL:-0}" == "1" ]]; then
+  echo ""
+  echo "=============================================="
+  echo "  Layer 3: LXD E2E (already run in e2e.sh)"
+  echo "=============================================="
+  echo "  (LXD system-container tests were executed above in Layer 1)"
+fi
 if [[ "${E2E_DOCKER:-0}" == "1" ]] || [[ "${E2E_DOCKER_FULL:-0}" == "1" ]]; then
   echo ""
   echo "=============================================="
